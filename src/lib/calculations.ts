@@ -176,9 +176,13 @@ function normalizeDescription(desc: string): string {
  * Detects recurring expenses: transactions explicitly flagged `isRecurring`,
  * plus a heuristic that spots the same description+category+similar amount
  * repeating across at least two distinct months.
+ *
+ * Only considers `kind: 'variable'` expenses — a fixed/incompressible cost
+ * (rent, insurance) recurring every month isn't a savings opportunity, so it
+ * has no business in a "reducible spending" list even if it repeats.
  */
 export function detectRecurringExpenses(transactions: Transaction[]): RecurringGroup[] {
-  const expenses = transactions.filter((t) => t.type === 'expense');
+  const expenses = transactions.filter((t) => t.type === 'expense' && t.kind === 'variable');
   const groups = new Map<string, Transaction[]>();
 
   for (const t of expenses) {
@@ -218,8 +222,11 @@ export interface AnomalousCategory {
 }
 
 /**
- * Flags categories whose current-month spending is significantly above the
- * trailing average of the previous months (excluding the current one).
+ * Flags categories whose current-month *variable* spending is significantly
+ * above the trailing average of the previous months (excluding the current
+ * one). Fixed/incompressible expenses (kind: 'fixed') are excluded: a rent
+ * increase isn't something the user can act on, so it shouldn't surface in a
+ * "reducible spending" list even though it's technically an increase.
  */
 export function detectAnomalousCategories(
   transactions: Transaction[],
@@ -228,28 +235,37 @@ export function detectAnomalousCategories(
   lookbackMonths = 3,
   thresholdPercent = 20,
 ): AnomalousCategory[] {
-  const current = categoryBreakdown(transactions, categories, month, 'expense');
+  const variableExpenseTotal = (forMonth: string, categoryId: string) =>
+    transactionsForMonth(transactions, forMonth)
+      .filter((t) => t.categoryId === categoryId && t.type === 'expense' && t.kind === 'variable')
+      .reduce((s, t) => s + t.amount, 0);
+
+  const categoryIds = new Set(
+    transactionsForMonth(transactions, month)
+      .filter((t) => t.type === 'expense' && t.kind === 'variable')
+      .map((t) => t.categoryId),
+  );
   const anomalies: AnomalousCategory[] = [];
 
-  for (const item of current) {
+  for (const categoryId of categoryIds) {
+    const cat = categories.find((c) => c.id === categoryId);
+    const currentTotal = variableExpenseTotal(month, categoryId);
+
     const pastTotals: number[] = [];
     for (let i = 1; i <= lookbackMonths; i++) {
-      const m = shiftMonth(month, -i);
-      const total = transactionsForMonth(transactions, m)
-        .filter((t) => t.categoryId === item.categoryId && t.type === 'expense')
-        .reduce((s, t) => s + t.amount, 0);
+      const total = variableExpenseTotal(shiftMonth(month, -i), categoryId);
       if (total > 0) pastTotals.push(total);
     }
     if (pastTotals.length === 0) continue;
     const average = pastTotals.reduce((s, v) => s + v, 0) / pastTotals.length;
     if (average <= 0) continue;
-    const percentAboveAverage = ((item.total - average) / average) * 100;
+    const percentAboveAverage = ((currentTotal - average) / average) * 100;
     if (percentAboveAverage >= thresholdPercent) {
       anomalies.push({
-        categoryId: item.categoryId,
-        name: item.name,
-        icon: item.icon,
-        current: item.total,
+        categoryId,
+        name: cat?.name ?? 'Sans catégorie',
+        icon: cat?.icon ?? '❔',
+        current: currentTotal,
         average,
         percentAboveAverage,
       });
