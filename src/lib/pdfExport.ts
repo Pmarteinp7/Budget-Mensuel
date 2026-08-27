@@ -63,7 +63,7 @@ export function exportMonthPDF(month: string, transactions: Transaction[], categ
   if (recurring.length > 0) {
     doc.setFontSize(12);
     doc.setTextColor(20);
-    doc.text('Dépenses réductibles — récurrences détectées', 14, y);
+    doc.text('Dépenses récurrentes détectées', 14, y);
     y += 4;
     autoTable(doc, {
       startY: y,
