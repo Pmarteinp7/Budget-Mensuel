@@ -94,7 +94,7 @@ export function SettingsView() {
           </div>
           <p className="mt-2 text-[11px] text-slate-500">
             Fichier nommé « budget-{exportMonth} » — solde, détail des transactions, répartition par catégorie et
-            dépenses réductibles identifiées.
+            dépenses récurrentes détectées.
           </p>
         </div>
       </section>

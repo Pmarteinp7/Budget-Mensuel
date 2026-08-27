@@ -175,7 +175,9 @@ function normalizeDescription(desc: string): string {
 /**
  * Detects recurring expenses: transactions explicitly flagged `isRecurring`,
  * plus a heuristic that spots the same description+category+similar amount
- * repeating across at least two distinct months.
+ * repeating across at least two distinct months. Includes both fixed and
+ * variable expenses — this is about spotting patterns across all spending,
+ * not pre-judging what the user can or can't act on.
  */
 export function detectRecurringExpenses(transactions: Transaction[]): RecurringGroup[] {
   const expenses = transactions.filter((t) => t.type === 'expense');
@@ -220,6 +222,8 @@ export interface AnomalousCategory {
 /**
  * Flags categories whose current-month spending is significantly above the
  * trailing average of the previous months (excluding the current one).
+ * Covers all expenses, fixed and variable alike — this is about surfacing
+ * where the money moved, not deciding in advance what's actionable.
  */
 export function detectAnomalousCategories(
   transactions: Transaction[],

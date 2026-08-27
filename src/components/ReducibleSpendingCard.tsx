@@ -26,7 +26,7 @@ export function ReducibleSpendingCard({ month }: { month: string }) {
     <div className="rounded-2xl border border-amber-900/50 bg-amber-950/20 p-4">
       <div className="mb-3 flex items-center gap-2">
         <AlertIcon width={18} height={18} className="text-amber-400" />
-        <h3 className="text-sm font-semibold text-amber-100">Dépenses réductibles</h3>
+        <h3 className="text-sm font-semibold text-amber-100">Suivi des dépenses</h3>
       </div>
 
       {recurring.length > 0 && (
