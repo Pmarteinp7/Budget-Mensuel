@@ -1,9 +1,13 @@
-import { useRef, useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
 import { useBudgetStore } from '../store/budgetStore';
 import { CategoryManager } from '../components/CategoryManager';
 import { DownloadIcon, UploadIcon } from '../components/icons';
 import { todayMonthKey } from '../lib/calculations';
 import { exportJSONBackup, exportMonthCSV, parseJSONBackup } from '../lib/exportImport';
+
+const StatementImportModal = lazy(() =>
+  import('../components/StatementImportModal').then((m) => ({ default: m.StatementImportModal })),
+);
 
 export function SettingsView() {
   const transactions = useBudgetStore((s) => s.transactions);
@@ -16,6 +20,7 @@ export function SettingsView() {
   const [exportMonth, setExportMonth] = useState(todayMonthKey());
   const [importMessage, setImportMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [showStatementImport, setShowStatementImport] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handlePDFExport() {
@@ -100,6 +105,23 @@ export function SettingsView() {
       </section>
 
       <section>
+        <h2 className="mb-2 text-sm font-semibold text-slate-300">Importer un relevé bancaire</h2>
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+          <p className="mb-3 text-xs text-slate-400">
+            Ajoutez en une fois les opérations d'un relevé PDF La Banque Postale, plutôt que de les saisir une par
+            une. Tout est analysé dans votre navigateur ; vous relisez et corrigez chaque opération avant import.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowStatementImport(true)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-slate-700 py-2.5 text-sm font-semibold text-white"
+          >
+            <UploadIcon width={16} height={16} /> Importer un relevé (PDF)
+          </button>
+        </div>
+      </section>
+
+      <section>
         <h2 className="mb-2 text-sm font-semibold text-slate-300">Sauvegarde complète</h2>
         <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
           <p className="mb-3 text-xs text-slate-400">
@@ -145,6 +167,12 @@ export function SettingsView() {
           Réinitialiser toutes les données
         </button>
       </section>
+
+      {showStatementImport && (
+        <Suspense fallback={null}>
+          <StatementImportModal onClose={() => setShowStatementImport(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }
